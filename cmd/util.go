@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/jetstack/vault-unsealer/pkg/kv"
-	"github.com/jetstack/vault-unsealer/pkg/kv/aws_kms"
 	"github.com/jetstack/vault-unsealer/pkg/kv/aws_ssm"
 	"github.com/jetstack/vault-unsealer/pkg/kv/cloudkms"
 	"github.com/jetstack/vault-unsealer/pkg/kv/gcs"
@@ -57,17 +56,12 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 	}
 
 	if cfg.GetString(cfgMode) == cfgModeValueAWSKMSSSM {
-		ssm, err := aws_ssm.New(cfg.GetString(cfgAWSSSMKeyPrefix))
+		ssm, err := aws_ssm.New(cfg.GetString(cfgAWSKMSKeyID), cfg.GetString(cfgAWSSSMKeyPrefix))
 		if err != nil {
-			return nil, fmt.Errorf("error creating AWS SSM kv store: %s", err.Error())
+			return nil, fmt.Errorf("error creating AWS Parameter Store: %s", err.Error())
 		}
 
-		kms, err := aws_kms.New(ssm, cfg.GetString(cfgAWSKMSKeyID))
-		if err != nil {
-			return nil, fmt.Errorf("error creating AWS KMS ID kv store: %s", err.Error())
-		}
-
-		return kms, nil
+		return ssm, nil
 	}
 
 	return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))

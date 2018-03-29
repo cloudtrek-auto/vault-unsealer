@@ -1,7 +1,6 @@
 package aws_ssm
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,26 +12,33 @@ import (
 
 type awsSSM struct {
 	ssmService *ssm.SSM
+	kmsKeyId string
 
 	keyPrefix string
 }
 
 var _ kv.Service = &awsSSM{}
-
-func NewWithSession(sess *session.Session, keyPrefix string) (*awsSSM, error) {
+var withDecryption = true;
+func NewWithSession(sess *session.Session, kmsKeyId, keyPrefix string) (*awsSSM, error) {
 	return &awsSSM{
 		ssmService: ssm.New(sess),
+		kmsKeyId: kmsKeyId,
 		keyPrefix:  keyPrefix,
 	}, nil
 }
 
-func New(keyPrefix string) (*awsSSM, error) {
+func New(kmsKeyId, keyPrefix string) (*awsSSM, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewWithSession(sess, keyPrefix)
+	return NewWithSession(sess, kmsKeyId, keyPrefix)
+}
+
+func newTrue() *bool {
+    b := true
+    return &b
 }
 
 func (a *awsSSM) Get(key string) ([]byte, error) {
@@ -40,6 +46,7 @@ func (a *awsSSM) Get(key string) ([]byte, error) {
 		Names: []*string{
 			aws.String(a.name(key)),
 		},
+		WithDecryption: &withDecryption,
 	})
 	if err != nil {
 		return []byte{}, err
@@ -49,7 +56,7 @@ func (a *awsSSM) Get(key string) ([]byte, error) {
 		return []byte{}, kv.NewNotFoundError("key '%s' not found", key)
 	}
 
-	return base64.StdEncoding.DecodeString(*out.Parameters[0].Value)
+	return []byte(*out.Parameters[0].Value), nil
 }
 
 func (a *awsSSM) name(key string) string {
@@ -61,8 +68,9 @@ func (a *awsSSM) Set(key string, val []byte) error {
 		Description: aws.String("vault-unsealer"),
 		Name:        aws.String(a.name(key)),
 		Overwrite:   aws.Bool(true),
-		Value:       aws.String(base64.StdEncoding.EncodeToString(val)),
-		Type:        aws.String("String"),
+		Value:       aws.String(string(val)),
+		Type:        aws.String("SecureString"),
+		KeyId:		 aws.String(a.kmsKeyId),
 	})
 	return err
 }

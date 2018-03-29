@@ -93,7 +93,7 @@ func init() {
 	configStringVar(cfgGoogleCloudStoragePrefix, "", "The prefix to use for values store in Google Cloud Storage")
 
 	// AWS KMS Storage flags
-	configStringVar("aws-kms-key-id", "", "The ID or ARN of the AWS KMS key to encrypt values")
+	configStringVar("aws-kms-key-id", "alias/aws/ssm", "The ID or ARN of the AWS KMS key to encrypt values. Default is to use 'alias/aws/ssm'")
 
 	// AWS SSM Parameter Storage flags
 	configStringVar("aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")

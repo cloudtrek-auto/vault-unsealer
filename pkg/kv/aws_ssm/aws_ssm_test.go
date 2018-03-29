@@ -8,7 +8,12 @@ import (
 )
 
 func TestAWSIntegration(t *testing.T) {
+	keyID := os.Getenv("AWS_KMS_KEY_ID")
 	region := os.Getenv("AWS_REGION")
+
+	if keyID == "" {
+		t.Skip("Skip AWS integration tests: not environment variable 'AWS_KMS_KEY_ID' specified")
+	}
 
 	if region == "" {
 		t.Skip("Skip AWS integration tests: not environment variable 'AWS_REGION' specified")
@@ -17,7 +22,7 @@ func TestAWSIntegration(t *testing.T) {
 	payloadKey := "test123"
 	payloadValue := "payload123"
 
-	a, err := New("test-integration-")
+	a, err := New(keyID, "test-integration-")
 	if err != nil {
 		t.Errorf("Unexpected error creating SSM kv: %s", err)
 	}
